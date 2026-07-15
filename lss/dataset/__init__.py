@@ -1,4 +1,3 @@
-from lss.dataset.mnist import MNISTDataset
-from lss.dataset.emnist import EMNISTDataset
+from lss.dataset.nuscenes_dataset import NuScenesDataset
 
-__all_datasets__ = {"EMNISTDataset": EMNISTDataset, "MNISTDataset": MNISTDataset}
+__all_datasets__ = {"NuScenesDataset": NuScenesDataset}

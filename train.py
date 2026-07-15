@@ -1,8 +1,8 @@
 import argparse
 
 from lss.dataset import __all_datasets__
+from lss.model import __all_models__
 from lss.model.loss import CFGLoss
-from lss.model.model import UNet
 from lss.utils.misc import get_logger, load_config, make_artifacts_dirs
 from lss.utils.trainer import Trainer
 
@@ -13,7 +13,7 @@ def train(args):
     logger = get_logger(config["LOG_DIR"])
     trainer = Trainer(config, logger)
 
-    model = UNet(config)
+    model = __all_models__[config["MODEL"]["model_class"]](config)
     trainer.set_model(model)
     if args.ckpt is not None:
         trainer.load_checkpoint(args.ckpt)
@@ -25,6 +25,7 @@ def train(args):
         train_dataset,
         val_dataset,
         data_config=config["DATA"],
+        optim_config=config["OPTIM"],
         val_set_batch_size=1,
         shuffle_valset_once=False,
     )

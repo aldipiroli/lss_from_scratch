@@ -102,6 +102,7 @@ class TrainerBase(ABC):
         train_dataset,
         val_dataset,
         data_config,
+        optim_config,
         val_set_batch_size=None,
         shuffle_valset=False,
         shuffle_valset_once=False,
@@ -109,10 +110,11 @@ class TrainerBase(ABC):
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
         self.data_config = data_config
+        self.optim_config = optim_config
 
         self.train_loader = DataLoader(
             self.train_dataset,
-            batch_size=data_config["batch_size"],
+            batch_size=optim_config["batch_size"],
             shuffle=True,
             drop_last=True,
         )
@@ -123,7 +125,7 @@ class TrainerBase(ABC):
             self.val_dataset,
             batch_size=val_set_batch_size
             if val_set_batch_size is not None
-            else data_config["batch_size"],
+            else optim_config["batch_size"],
             shuffle=shuffle_valset,
             drop_last=True,
         )

@@ -14,7 +14,8 @@ dependencies = [
     "pandas",
     "debugpy",
     "pytest",
-    "pre-commit"
+    "pre-commit",
+    "nuscenes-devkit>=1.1.9",
 ]
 
 [tool.black]
