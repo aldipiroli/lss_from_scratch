@@ -12,9 +12,9 @@ class BaseLoss(nn.Module):
         pass
 
 
-class CFGLoss(BaseLoss):
+class LSSLoss(BaseLoss):
     def __init__(self, config, logger):
-        super(CFGLoss, self).__init__(config, logger)
+        super(LSSLoss, self).__init__(config, logger)
 
     def forward(self, preds, labels):
         loss = torch.nn.functional.mse_loss(preds, labels)

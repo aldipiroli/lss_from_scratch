@@ -2,7 +2,7 @@ import argparse
 
 from lss.dataset import __all_datasets__
 from lss.model import __all_models__
-from lss.model.loss import CFGLoss
+from lss.model.loss import LSSLoss
 from lss.utils.misc import get_logger, load_config, make_artifacts_dirs
 from lss.utils.trainer import Trainer
 
@@ -30,7 +30,7 @@ def train(args):
         shuffle_valset_once=False,
     )
     trainer.set_optimizer(optim_config=config["OPTIM"])
-    trainer.set_loss_function(CFGLoss(config, logger))
+    trainer.set_loss_function(LSSLoss(config, logger))
     trainer.train()
 
 
