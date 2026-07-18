@@ -15,6 +15,7 @@ CAMERAS = [
     "CAM_BACK_RIGHT",
 ]
 
+
 class NuScenesDataset(Dataset):
     def __init__(self, cfg, mode="train", logger=None, version="v1.0-mini"):
         super().__init__()
@@ -51,7 +52,6 @@ class NuScenesDataset(Dataset):
     def __len__(self):
         return len(self.samples)
 
-
     def get_camera_data(self, sample):
         images = {}
         intrinsics = {}
@@ -63,15 +63,11 @@ class NuScenesDataset(Dataset):
             images[cam] = read_image(img_path).float() / 255.0
 
             calib = self.nusc.get(
-                "calibrated_sensor",
-                sample_data["calibrated_sensor_token"]
+                "calibrated_sensor", sample_data["calibrated_sensor_token"]
             )
 
             # Intrinsic matrix (3x3)
-            K = torch.tensor(
-                calib["camera_intrinsic"],
-                dtype=torch.float32
-            )
+            K = torch.tensor(calib["camera_intrinsic"], dtype=torch.float32)
 
             # Extrinsic matrix Camera -> Ego (4x4)
             R = Quaternion(calib["rotation"]).rotation_matrix
@@ -88,9 +84,4 @@ class NuScenesDataset(Dataset):
         sample = self.samples[idx]
 
         images, intrinsics, extrinsics = self.get_camera_data(sample)
-
-        return {
-            "images": images,
-            "intrinsics": intrinsics,
-            "extrinsics": extrinsics,
-        }
+        return images, intrinsics, extrinsics

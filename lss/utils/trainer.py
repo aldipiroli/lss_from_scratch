@@ -1,7 +1,6 @@
 import torch
 from tqdm import tqdm
 
-from lss.utils.plotters import plot
 from lss.utils.trainer_base import TrainerBase
 
 
@@ -20,7 +19,10 @@ class Trainer(TrainerBase):
 
     def train_one_epoch(self):
         self.model.train()
-        pass
+        self.model.train()
+        pbar = tqdm(enumerate(self.train_loader), total=len(self.train_loader))
+        for n_iter, (images, intrinsics, extrinsics) in pbar:
+            pass
 
     @torch.no_grad()
     def evaluate_model(self):
