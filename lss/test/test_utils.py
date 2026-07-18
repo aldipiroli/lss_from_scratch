@@ -41,7 +41,7 @@ def load_data(npz_path="lss/test/data/sample.npz"):
             extrinsics[cam] = torch.from_numpy(extrinsics_np[cam]).float()
     else:
         for cam in CAMERAS:
-            images[cam] = torch.rand(1, 3, 900, 1600)
+            images[cam] = torch.rand(1, 3, 90, 160)  #  original size: 3, 900, 1600
             intrinsics[cam] = torch.eye(3).unsqueeze(0)
             extrinsics[cam] = torch.eye(4).unsqueeze(0)
     return images, intrinsics, extrinsics
@@ -54,36 +54,39 @@ def test_load_config():
 
 def test_pixel_to_camera_rays():
     images, intrinsics, extrinsics = load_data()
-    img = images[CAMERAS[0]][0]
-    K = intrinsics[CAMERAS[0]][0]
+    img = images[CAMERAS[0]]
+    K = intrinsics[CAMERAS[0]]
+    B = img.shape[0]
 
     r, feats = pixel_to_camera_rays(img, K)
-    assert r.shape == (img.shape[1] * img.shape[2], 3)
-    assert feats.shape == (img.shape[1] * img.shape[2], img.shape[0])
+    assert r.shape == (B, img.shape[2] * img.shape[3], 3)
+    assert feats.shape == (B, img.shape[2] * img.shape[3], img.shape[1])
 
 
 def test_camera_to_ego():
     images, intrinsics, extrinsics = load_data()
-    img = images[CAMERAS[0]][0]
-    K = intrinsics[CAMERAS[0]][0]
-    extrinsic = extrinsics[CAMERAS[0]][0]
+    img = images[CAMERAS[0]]
+    K = intrinsics[CAMERAS[0]]
+    extrinsic = extrinsics[CAMERAS[0]]
+    B = img.shape[0]
 
     r, feats = pixel_to_camera_rays(img, K)
     r = camera_to_ego(r, extrinsic)
-    assert r.shape == (img.shape[1] * img.shape[2], 3)
+    assert r.shape == (B, img.shape[2] * img.shape[3], 3)
 
 
 def test_add_depth_along_ray():
     config = load_config("lss/config/nuscenes_mini_config.yaml")
     images, intrinsics, extrinsics = load_data()
-    img = images[CAMERAS[0]][0]
-    K = intrinsics[CAMERAS[0]][0]
-    extrinsic = extrinsics[CAMERAS[0]][0]
+    img = images[CAMERAS[0]]
+    K = intrinsics[CAMERAS[0]]
+    extrinsic = extrinsics[CAMERAS[0]]
+    B = img.shape[0]
 
     r, feats = pixel_to_camera_rays(img, K)
     r = camera_to_ego(r, extrinsic)
     r, depths = add_depth_along_ray(r, config["LSS"]["depth_config"])
-    assert r.shape == (img.shape[1] * img.shape[2], len(depths), 3)
+    assert r.shape == (B, img.shape[2] * img.shape[3], len(depths), 3)
 
 
 def test_all_pixel_to_camera_rays():
@@ -91,21 +94,23 @@ def test_all_pixel_to_camera_rays():
     images, intrinsics, extrinsics = load_data()
     all_r = []
     all_colors = []
+    batch_id = 0
     for i, cam in enumerate(CAMERAS):
-        img = images[cam][0]
-        K = intrinsics[cam][0]
-        extrinsic = extrinsics[cam][0]
+        img = images[cam]
+        K = intrinsics[cam]
+        extrinsic = extrinsics[cam]
+        B = img.shape[0]
 
         r, feats = pixel_to_camera_rays(img, K)
         r, depths = add_depth_along_ray(r, config["LSS"]["depth_config"])
-        feats = feats[:, None, :].repeat(1, len(depths), 1)
+        feats = feats[:, :, None, :].repeat(1, 1, len(depths), 1)
         # flatten depths
-        r = r.reshape(-1, r.shape[-1])
-        feats = feats.reshape(-1, feats.shape[-1])
+        r = r.reshape(B, -1, r.shape[-1])
+        feats = feats.reshape(B, -1, feats.shape[-1])
 
         r = camera_to_ego(r, extrinsic)
-        all_r.append(r)
-        all_colors.append(feats)
+        all_r.append(r[batch_id])
+        all_colors.append(feats[batch_id])
 
     all_r = torch.cat(all_r, 0)
     all_colors = torch.cat(all_colors, 0)
