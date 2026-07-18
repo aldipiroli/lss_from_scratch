@@ -6,7 +6,7 @@ sys.path.append(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
 from lss.utils.misc import load_config
-from lss.utils.camera_utils import pixel_to_camera_rays
+from lss.utils.camera_utils import pixel_to_camera_rays, camera_to_ego
 import numpy as np
 
 from pathlib import Path
@@ -58,6 +58,17 @@ def test_pixel_to_camera_rays():
     assert feats.shape == (img.shape[1] * img.shape[2], img.shape[0])
 
 
+def test_camera_to_ego():
+    images, intrinsics, extrinsics = load_data()
+    img = images[CAMERAS[0]][0]
+    K = intrinsics[CAMERAS[0]][0]
+    extrinsic = extrinsics[CAMERAS[0]][0]
+
+    r, feats = pixel_to_camera_rays(img, K)
+    r = camera_to_ego(r, extrinsic)
+    assert r.shape == (img.shape[1] * img.shape[2], 3)
+
+
 def test_all_pixel_to_camera_rays():
     images, intrinsics, extrinsics = load_data()
     all_r = []
@@ -65,8 +76,10 @@ def test_all_pixel_to_camera_rays():
     for i, cam in enumerate(CAMERAS):
         img = images[cam][0]
         K = intrinsics[cam][0]
+        extrinsic = extrinsics[cam][0]
+
         r, feats = pixel_to_camera_rays(img, K)
-        r[..., -1] += i * 0.1
+        r = camera_to_ego(r, extrinsic)
         all_r.append(r)
         all_colors.append(feats)
 
