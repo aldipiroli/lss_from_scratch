@@ -16,6 +16,7 @@ dependencies = [
     "pytest",
     "pre-commit",
     "nuscenes-devkit>=1.1.9",
+    "pyvista>=0.48.4",
 ]
 
 [tool.black]

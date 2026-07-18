@@ -24,7 +24,7 @@ OPTIM:
   accumulate_gradient: False
   accumulate_gradient_iters: 8
   num_epochs: 100
-  batch_size: 32
+  batch_size: 1
   max_eval_iters: 25
   save_ckpt_every: -1
   eval_every: 1
