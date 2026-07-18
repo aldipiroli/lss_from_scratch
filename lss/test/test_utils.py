@@ -6,7 +6,11 @@ sys.path.append(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
 from lss.utils.misc import load_config
-from lss.utils.camera_utils import pixel_to_camera_rays, camera_to_ego
+from lss.utils.camera_utils import (
+    pixel_to_camera_rays,
+    camera_to_ego,
+    add_depth_along_ray,
+)
 import numpy as np
 
 from pathlib import Path
@@ -69,7 +73,21 @@ def test_camera_to_ego():
     assert r.shape == (img.shape[1] * img.shape[2], 3)
 
 
+def test_add_depth_along_ray():
+    config = load_config("lss/config/nuscenes_mini_config.yaml")
+    images, intrinsics, extrinsics = load_data()
+    img = images[CAMERAS[0]][0]
+    K = intrinsics[CAMERAS[0]][0]
+    extrinsic = extrinsics[CAMERAS[0]][0]
+
+    r, feats = pixel_to_camera_rays(img, K)
+    r = camera_to_ego(r, extrinsic)
+    r, depths = add_depth_along_ray(r, config["LSS"]["depth_config"])
+    assert r.shape == (img.shape[1] * img.shape[2], len(depths), 3)
+
+
 def test_all_pixel_to_camera_rays():
+    config = load_config("lss/config/nuscenes_mini_config.yaml")
     images, intrinsics, extrinsics = load_data()
     all_r = []
     all_colors = []
@@ -79,6 +97,12 @@ def test_all_pixel_to_camera_rays():
         extrinsic = extrinsics[cam][0]
 
         r, feats = pixel_to_camera_rays(img, K)
+        r, depths = add_depth_along_ray(r, config["LSS"]["depth_config"])
+        feats = feats[:, None, :].repeat(1, len(depths), 1)
+        # flatten depths
+        r = r.reshape(-1, r.shape[-1])
+        feats = feats.reshape(-1, feats.shape[-1])
+
         r = camera_to_ego(r, extrinsic)
         all_r.append(r)
         all_colors.append(feats)

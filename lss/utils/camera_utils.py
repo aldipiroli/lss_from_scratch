@@ -20,8 +20,11 @@ def get_p(K):
 
 def pixel_to_camera_rays(img, K):
     # useful: https://hedivision.github.io/Pinhole.html
+    device = img.device
     H, W = img.shape[-2:]
-    grid_v, grid_u = torch.meshgrid(torch.arange(H), torch.arange(W), indexing="ij")
+    grid_v, grid_u = torch.meshgrid(
+        torch.arange(H, device=device), torch.arange(W, device=device), indexing="ij"
+    )
     u = grid_u.reshape(-1)
     v = grid_v.reshape(-1)
 
@@ -33,6 +36,15 @@ def pixel_to_camera_rays(img, K):
     r = torch.stack([r_x, r_y, torch.ones_like(r_x)], dim=-1)
     feats = img[..., v, u].transpose(1, 0)  # N,C
     return r, feats
+
+
+def add_depth_along_ray(r, depth_config):
+    d_min = depth_config["d_min"]
+    d_max = depth_config["d_max"]
+    d_step = depth_config["d_step"]
+    depths = torch.arange(d_min, d_max, d_step)
+    r = r[:, None, :] * depths[None, :, None]
+    return r, depths
 
 
 def camera_to_ego(r, extrinsic):

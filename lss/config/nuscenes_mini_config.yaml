@@ -2,6 +2,11 @@ ARTIFACTS_DIR: "artifacts"
 MODEL:
   model_class: ResNet18
   pretrained: false
+LSS:
+  depth_config:
+    d_min: 4
+    d_max: 45
+    d_step: 1
 DATA:
   dataset: NuScenesDataset
   root_dir: "data/nuscenes/v1.0-mini"
