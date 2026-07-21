@@ -10,9 +10,10 @@ from lss.utils.camera_utils import (
     pixel_to_camera_rays,
     camera_to_ego,
     add_depth_along_ray,
+    scale_camera_intrinsic,
 )
 import numpy as np
-
+import torch.nn.functional as F
 from pathlib import Path
 
 CAMERAS = [
@@ -114,3 +115,23 @@ def test_all_pixel_to_camera_rays():
 
     all_r = torch.cat(all_r, 0)
     all_colors = torch.cat(all_colors, 0)
+
+
+def test_scale_camera_intrinsic():
+    images, intrinsics, extrinsics = load_data()
+    img = images[CAMERAS[0]]
+    K = intrinsics[CAMERAS[0]]
+    r, feats = pixel_to_camera_rays(img, K)
+
+    old_size = (img.shape[2], img.shape[3])
+    new_size = (img.shape[2] // 10, img.shape[3] // 10)
+    img_resized = F.interpolate(
+        img,
+        size=new_size,
+        mode="bilinear",
+        align_corners=False,
+    )
+
+    K_new = scale_camera_intrinsic(old_size, new_size, K)
+    r_new, feats_new = pixel_to_camera_rays(img_resized, K_new)
+    assert r_new.shape[1] < r.shape[1]

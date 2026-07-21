@@ -60,3 +60,19 @@ def camera_to_ego(r, extrinsic):
 def plot_camera_rays(r, img, u, v):
     color = img[..., u, v].transpose(1, 0)
     visualize_pcl(r, color)
+
+
+def scale_camera_intrinsic(old_size, new_size, K):
+    h_old, w_old = old_size[0], old_size[1]
+    h_new, w_new = new_size[0], new_size[1]
+
+    w_scale = w_new / w_old
+    h_scale = h_new / h_old
+
+    K_scale = torch.zeros_like(K)
+    K_scale[..., 0, 0] = w_scale
+    K_scale[..., 1, 1] = h_scale
+    K_scale[..., 2, 2] = 1
+
+    K_new = K_scale @ K
+    return K_new
