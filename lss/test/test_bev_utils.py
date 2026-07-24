@@ -12,6 +12,8 @@ from lss.utils.camera_utils import (
     pixel_to_camera_rays,
     add_depth_along_ray,
     camera_to_ego,
+    scale_image,
+    scale_camera_intrinsic,
 )
 
 
@@ -40,12 +42,14 @@ def test_scatter_feautres():
 
 def test_example_project_pcl_to_pillar():
     config = load_config("lss/config/nuscenes_mini_config.yaml")
-    images, intrinsics, extrinsics = load_data(npz_path="lss/test/data/sample1.npz")
+    images, intrinsics, extrinsics = load_data(npz_path="lss/test/data/sample.npz")
     all_r = []
     all_feats = []
-    for i, cam in enumerate(CAMERAS[:1]):
-        img = images[cam]
+    for i, cam in enumerate(CAMERAS):
+        img_full = images[cam]
+        img = scale_image(img_full, 0.5)
         K = intrinsics[cam]
+        K = scale_camera_intrinsic(img_full.shape, img.shape, K)
         extrinsic = extrinsics[cam]
         B = img.shape[0]
 

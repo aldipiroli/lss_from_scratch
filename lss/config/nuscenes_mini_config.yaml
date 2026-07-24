@@ -10,8 +10,8 @@ LSS:
   bev_config:
     x_min: -25
     x_max: 25
-    y_min: 0
-    y_max: 50
+    y_min: -25
+    y_max: 25
     cell_size: 0.5
 DATA:
   dataset: NuScenesDataset

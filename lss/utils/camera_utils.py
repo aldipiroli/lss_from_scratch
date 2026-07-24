@@ -1,5 +1,6 @@
 import torch
 from lss.utils.plotters import visualize_pcl
+import torch.nn.functional as F
 
 
 def get_f(K):
@@ -76,3 +77,14 @@ def scale_camera_intrinsic(old_size, new_size, K):
 
     K_new = K_scale @ K
     return K_new
+
+
+def scale_image(img, scale=0.25):
+    img_small = F.interpolate(
+        img,
+        scale_factor=scale,
+        mode="bilinear",
+        align_corners=False,
+        antialias=True,
+    )
+    return img_small
