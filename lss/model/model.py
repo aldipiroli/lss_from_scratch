@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 from torchvision.models import resnet18, ResNet18_Weights
 from lss.utils.bev_utils import get_depths
