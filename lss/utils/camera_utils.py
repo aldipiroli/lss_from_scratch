@@ -1,6 +1,7 @@
 import torch
 from lss.utils.plotters import visualize_pcl
 import torch.nn.functional as F
+from lss.utils.bev_utils import get_depths
 
 
 def get_f(K):
@@ -43,10 +44,7 @@ def pixel_to_camera_rays(img, K):
 
 
 def add_depth_along_ray(r, depth_config):
-    d_min = depth_config["d_min"]
-    d_max = depth_config["d_max"]
-    d_step = depth_config["d_step"]
-    depths = torch.arange(d_min, d_max, d_step)
+    depths = get_depths(depth_config)
     r = r[:, :, None, :] * depths[None, None, :, None]
     return r, depths
 

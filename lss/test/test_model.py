@@ -8,6 +8,7 @@ sys.path.append(
 from lss.utils.misc import load_config
 from lss.test.test_camera_utils import load_data, CAMERAS
 from lss.model.model import ResNet18
+from lss.utils.bev_utils import get_depths
 
 
 def test_model_forward_pass():
@@ -27,5 +28,8 @@ def test_model_forward_pass():
     )
     all_imgs = all_imgs.reshape(B * n_cam, ch, h, w)
     model = ResNet18(config)
-    feats = model(all_imgs)
-    assert feats is not None
+    feats, dist = model(all_imgs)
+
+    n_depths = len(get_depths(config["LSS"]["depth_config"]))
+    assert feats.shape == (B * n_cam, 128, 12, 20)
+    assert dist.shape == (B * n_cam, n_depths, 12, 20)
