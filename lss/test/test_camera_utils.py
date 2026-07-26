@@ -11,6 +11,7 @@ from lss.utils.camera_utils import (
     camera_to_ego,
     add_depth_along_ray,
     scale_camera_intrinsic,
+    get_depths,
 )
 import numpy as np
 import torch.nn.functional as F
@@ -79,7 +80,8 @@ def test_add_depth_along_ray():
 
     r, feats = pixel_to_camera_rays(img, K)
     r = camera_to_ego(r, extrinsic)
-    r, depths = add_depth_along_ray(r, config["LSS"]["depth_config"])
+    depths = get_depths(config["LSS"]["depth_config"])
+    r = add_depth_along_ray(r, depths)
     assert r.shape == (B, img.shape[2] * img.shape[3], len(depths), 3)
 
 
@@ -96,7 +98,8 @@ def test_all_pixel_to_camera_rays():
         B = img.shape[0]
 
         r, feats = pixel_to_camera_rays(img, K)
-        r, depths = add_depth_along_ray(r, config["LSS"]["depth_config"])
+        depths = get_depths(config["LSS"]["depth_config"])
+        r = add_depth_along_ray(r, config["LSS"]["depth_config"])
         feats = feats[:, :, None, :].repeat(1, 1, len(depths), 1)
         # flatten depths
         r = r.reshape(B, -1, r.shape[-1])
@@ -128,5 +131,3 @@ def test_scale_camera_intrinsic():
     K_new = scale_camera_intrinsic(old_size, new_size, K)
     r_new, feats_new = pixel_to_camera_rays(img_resized, K_new)
     assert r_new.shape[1] < r.shape[1]
-
-

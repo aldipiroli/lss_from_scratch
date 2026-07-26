@@ -2,10 +2,18 @@ import torch
 from tqdm import tqdm
 
 from lss.utils.trainer_base import TrainerBase
-from lss.utils.camera_utils import batch_data, unbatch_data
+from lss.utils.camera_utils import (
+    batch_data,
+    unbatch_data,
+    scale_camera_intrinsic,
+    pixel_to_camera_rays,
+    add_depth_along_ray,
+    get_depths,
+    camera_to_ego,
+)
 from lss.dataset.nuscenes_dataset import CAMERAS
 
-CAMERAS = CAMERAS[:2]
+CAMERAS = CAMERAS[:1]
 
 
 class Trainer(TrainerBase):
@@ -29,6 +37,9 @@ class Trainer(TrainerBase):
             images = images.cuda()
             feats, dist = self.model(images)
             feats, dist = self.post_process_model_output(feats, dist)
+            all_rays, all_feats = self.lyft_features(
+                images, feats, dist, intrinsics, extrinsics
+            )
 
     @torch.no_grad()
     def evaluate_model(self):
@@ -48,3 +59,26 @@ class Trainer(TrainerBase):
         )
         return feats, dist
 
+    def lyft_features(self, images, feats, dist, intrinsics, extrinsics):
+        input_size = (images.shape[-2], images.shape[-1])
+        feats_size = (feats.shape[-2], feats.shape[-1])
+        B = feats.shape[0]
+        all_rays = []
+        all_feats = []
+        for i, cam in enumerate(CAMERAS):
+            img = images[:, i]
+            extrinsic = extrinsics[cam].cuda()
+            K = intrinsics[cam].cuda()
+            K = scale_camera_intrinsic(input_size, feats_size, K)
+            depths = get_depths(self.config["LSS"]["depth_config"])
+            rays, feats = pixel_to_camera_rays(img, K)
+            rays = add_depth_along_ray(rays, depths)
+            rays = rays.reshape(B, -1, rays.shape[-1])
+            rays = camera_to_ego(rays, extrinsic)
+
+            all_rays.append(rays)
+            all_feats.append(feats)
+
+        all_rays = torch.stack(all_rays, 1)
+        all_feats = torch.stack(all_feats, 1)
+        return all_rays, all_feats

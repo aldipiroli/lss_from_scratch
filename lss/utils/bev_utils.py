@@ -54,6 +54,4 @@ def get_depths(config):
     d_max = config["d_max"]
     d_step = config["d_step"]
     depths = torch.arange(d_min, d_max, d_step)
-    return depths
-
-
+    return depths.cuda()

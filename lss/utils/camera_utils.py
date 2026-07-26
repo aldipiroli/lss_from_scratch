@@ -1,22 +1,21 @@
 import torch
 from lss.utils.plotters import visualize_pcl
 import torch.nn.functional as F
-from lss.utils.bev_utils import get_depths
 
 
 def get_f(K):
     # get focal length
     assert K.shape[-2:] == (3, 3)
-    f_x = K[..., 0, 0]
-    f_y = K[..., 1, 1]
+    f_x = K[..., 0, 0].cuda()
+    f_y = K[..., 1, 1].cuda()
     return f_x, f_y
 
 
 def get_p(K):
     # get principal point
     assert K.shape[-2:] == (3, 3)
-    p_x = K[..., 0, 2]
-    p_y = K[..., 1, 2]
+    p_x = K[..., 0, 2].cuda()
+    p_y = K[..., 1, 2].cuda()
     return p_x, p_y
 
 
@@ -39,14 +38,13 @@ def pixel_to_camera_rays(img, K):
     r = torch.stack([r_x, r_y, torch.ones_like(r_x)], dim=-1)
 
     batch_idx = torch.arange(img.shape[0], device=img.device)[:, None]
-    feats = img[batch_idx, :, v, u]  # B, N, C
+    feats = img[batch_idx, v, u]  # B, N, C
     return r, feats
 
 
-def add_depth_along_ray(r, depth_config):
-    depths = get_depths(depth_config)
+def add_depth_along_ray(r, depths):
     r = r[:, :, None, :] * depths[None, None, :, None]
-    return r, depths
+    return r
 
 
 def camera_to_ego(r, extrinsic):
@@ -104,6 +102,7 @@ def batch_data(images, CAMERAS):
     )
     all_imgs = all_imgs.reshape(B * n_cam, ch, h, w)
     return all_imgs
+
 
 def unbatch_data(images, batch_size, n_cameras):
     B_ncam, ch, h, w = images.shape
