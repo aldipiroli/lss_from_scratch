@@ -14,7 +14,7 @@ from lss.utils.camera_utils import (
     camera_to_ego,
     scale_image,
     scale_camera_intrinsic,
-    get_depths
+    get_depths,
 )
 
 

@@ -110,17 +110,10 @@ def unbatch_data(images, batch_size, n_cameras):
     images = images.reshape(batch_size, n_cameras, ch, h, w)
     return images
 
+
 def get_depths(config):
     d_min = config["d_min"]
     d_max = config["d_max"]
     d_step = config["d_step"]
     depths = torch.arange(d_min, d_max, d_step)
     return depths
-
-
-###########################################
-import debugpy
-debugpy.listen(('localhost', 6001))
-print('Waiting for debugger attach...')
-debugpy.wait_for_client()
-###########################################
