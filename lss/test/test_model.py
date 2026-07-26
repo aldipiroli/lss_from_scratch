@@ -8,8 +8,7 @@ sys.path.append(
 from lss.utils.misc import load_config
 from lss.test.test_camera_utils import load_data, CAMERAS
 from lss.model.model import ResNet18
-from lss.utils.bev_utils import get_depths
-from lss.utils.camera_utils import batch_data
+from lss.utils.camera_utils import batch_data, get_depths
 
 
 def test_model_forward_pass():

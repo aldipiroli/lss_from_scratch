@@ -14,6 +14,7 @@ from lss.utils.camera_utils import (
     camera_to_ego,
     scale_image,
     scale_camera_intrinsic,
+    get_depths
 )
 
 
@@ -54,7 +55,8 @@ def test_example_project_pcl_to_pillar():
         B = img.shape[0]
 
         r, feats = pixel_to_camera_rays(img, K)
-        r, depths = add_depth_along_ray(r, config["LSS"]["depth_config"])
+        depths = get_depths(config["LSS"]["depth_config"])
+        r = add_depth_along_ray(r, depths)
         feats = feats[:, :, None, :].repeat(1, 1, len(depths), 1)
         # flatten depths
         r = r.reshape(B, -1, r.shape[-1])

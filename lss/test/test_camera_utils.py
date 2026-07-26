@@ -11,8 +11,8 @@ from lss.utils.camera_utils import (
     camera_to_ego,
     add_depth_along_ray,
     scale_camera_intrinsic,
-    get_depths,
 )
+from lss.utils.camera_utils import get_depths
 import numpy as np
 import torch.nn.functional as F
 from pathlib import Path
@@ -99,7 +99,7 @@ def test_all_pixel_to_camera_rays():
 
         r, feats = pixel_to_camera_rays(img, K)
         depths = get_depths(config["LSS"]["depth_config"])
-        r = add_depth_along_ray(r, config["LSS"]["depth_config"])
+        r = add_depth_along_ray(r, depths)
         feats = feats[:, :, None, :].repeat(1, 1, len(depths), 1)
         # flatten depths
         r = r.reshape(B, -1, r.shape[-1])

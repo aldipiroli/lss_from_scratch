@@ -6,16 +6,16 @@ import torch.nn.functional as F
 def get_f(K):
     # get focal length
     assert K.shape[-2:] == (3, 3)
-    f_x = K[..., 0, 0].cuda()
-    f_y = K[..., 1, 1].cuda()
+    f_x = K[..., 0, 0]
+    f_y = K[..., 1, 1]
     return f_x, f_y
 
 
 def get_p(K):
     # get principal point
     assert K.shape[-2:] == (3, 3)
-    p_x = K[..., 0, 2].cuda()
-    p_y = K[..., 1, 2].cuda()
+    p_x = K[..., 0, 2]
+    p_y = K[..., 1, 2]
     return p_x, p_y
 
 
@@ -38,7 +38,7 @@ def pixel_to_camera_rays(img, K):
     r = torch.stack([r_x, r_y, torch.ones_like(r_x)], dim=-1)
 
     batch_idx = torch.arange(img.shape[0], device=img.device)[:, None]
-    feats = img[batch_idx, v, u]  # B, N, C
+    feats = img[batch_idx, :, v, u]  # B, N, C
     return r, feats
 
 
@@ -109,3 +109,18 @@ def unbatch_data(images, batch_size, n_cameras):
     assert batch_size * n_cameras == B_ncam
     images = images.reshape(batch_size, n_cameras, ch, h, w)
     return images
+
+def get_depths(config):
+    d_min = config["d_min"]
+    d_max = config["d_max"]
+    d_step = config["d_step"]
+    depths = torch.arange(d_min, d_max, d_step)
+    return depths
+
+
+###########################################
+import debugpy
+debugpy.listen(('localhost', 6001))
+print('Waiting for debugger attach...')
+debugpy.wait_for_client()
+###########################################
