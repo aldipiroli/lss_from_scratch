@@ -86,3 +86,27 @@ def scale_image(img, scale=0.25):
         antialias=True,
     )
     return img_small
+
+
+def batch_data(images, CAMERAS):
+    all_imgs = []
+    for i, cam in enumerate(CAMERAS):
+        img = images[cam]
+        all_imgs.append(img)
+
+    all_imgs = torch.stack(all_imgs, 1)
+    B, n_cam, ch, h, w = (
+        all_imgs.shape[0],
+        all_imgs.shape[1],
+        all_imgs.shape[2],
+        all_imgs.shape[3],
+        all_imgs.shape[4],
+    )
+    all_imgs = all_imgs.reshape(B * n_cam, ch, h, w)
+    return all_imgs
+
+def unbatch_data(images, batch_size, n_cameras):
+    B_ncam, ch, h, w = images.shape
+    assert batch_size * n_cameras == B_ncam
+    images = images.reshape(batch_size, n_cameras, ch, h, w)
+    return images

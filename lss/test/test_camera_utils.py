@@ -16,14 +16,7 @@ import numpy as np
 import torch.nn.functional as F
 from pathlib import Path
 
-CAMERAS = [
-    "CAM_FRONT",
-    "CAM_FRONT_LEFT",
-    "CAM_FRONT_RIGHT",
-    "CAM_BACK",
-    "CAM_BACK_LEFT",
-    "CAM_BACK_RIGHT",
-]
+from lss.dataset.nuscenes_dataset import CAMERAS
 
 
 def load_data(npz_path="lss/test/data/sample.npz"):
@@ -135,3 +128,5 @@ def test_scale_camera_intrinsic():
     K_new = scale_camera_intrinsic(old_size, new_size, K)
     r_new, feats_new = pixel_to_camera_rays(img_resized, K_new)
     assert r_new.shape[1] < r.shape[1]
+
+

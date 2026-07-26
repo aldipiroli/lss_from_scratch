@@ -19,7 +19,7 @@ class ResNet18(BaseModel):
 
         depths = get_depths(config["LSS"]["depth_config"])
         self.dist_conv = nn.Conv2d(
-            in_channels=128,
+            in_channels=512,
             out_channels=len(depths),
             kernel_size=3,
             padding=1,
@@ -32,6 +32,8 @@ class ResNet18(BaseModel):
         x = self.model.maxpool(x)
 
         x = self.model.layer1(x)
-        feats = self.model.layer2(x)  # (B, 128, 12, 20)
-        dist = self.dist_conv(feats)  # (B, n_depths, 12, 20)
+        x = self.model.layer2(x)
+        x = self.model.layer3(x)
+        feats = self.model.layer4(x)  # (B, n_ch, h, w)
+        dist = self.dist_conv(feats)  # (B, n_depths, h, w)
         return feats, dist

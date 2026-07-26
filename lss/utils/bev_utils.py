@@ -55,3 +55,5 @@ def get_depths(config):
     d_step = config["d_step"]
     depths = torch.arange(d_min, d_max, d_step)
     return depths
+
+
