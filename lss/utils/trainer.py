@@ -11,6 +11,7 @@ from lss.utils.camera_utils import (
     get_depths,
     camera_to_ego,
 )
+from lss.utils.bev_utils import project_pcl_to_pillar, scatter_feautres_to_bev
 from lss.dataset.nuscenes_dataset import CAMERAS
 
 CAMERAS = CAMERAS[:1]
@@ -34,12 +35,13 @@ class Trainer(TrainerBase):
         pbar = tqdm(enumerate(self.train_loader), total=len(self.train_loader))
         for n_iter, (all_images, intrinsics, extrinsics) in pbar:
             images = batch_data(all_images, CAMERAS)
-            images = images.cuda()
+            images = images.to(self.device)
             feats, dist = self.model(images)
             feats, dist = self.post_process_model_output(feats, dist)
             all_rays, all_feats = self.lyft_features(
                 images, feats, dist, intrinsics, extrinsics
             )
+            self.splat_features(all_rays, all_feats)
 
     @torch.no_grad()
     def evaluate_model(self):
@@ -66,19 +68,43 @@ class Trainer(TrainerBase):
         all_rays = []
         all_feats = []
         for i, cam in enumerate(CAMERAS):
-            img = images[:, i]
-            extrinsic = extrinsics[cam].cuda()
-            K = intrinsics[cam].cuda()
+            curr_feats = feats[:, i]
+            extrinsic = extrinsics[cam].to(self.device)
+            K = intrinsics[cam].to(self.device)
             K = scale_camera_intrinsic(input_size, feats_size, K)
             depths = get_depths(self.config["LSS"]["depth_config"])
-            rays, feats = pixel_to_camera_rays(img, K)
+            rays, cam_feats = pixel_to_camera_rays(curr_feats, K)
+
             rays = add_depth_along_ray(rays, depths)
+            cam_feats = cam_feats[:, :, None, :].repeat(1, 1, len(depths), 1)
             rays = rays.reshape(B, -1, rays.shape[-1])
+            cam_feats = cam_feats.reshape(B, -1, cam_feats.shape[-1])
             rays = camera_to_ego(rays, extrinsic)
 
             all_rays.append(rays)
-            all_feats.append(feats)
+            all_feats.append(cam_feats)
 
-        all_rays = torch.stack(all_rays, 1)
-        all_feats = torch.stack(all_feats, 1)
+        all_rays = torch.stack(all_rays, 1)  # B, n_cam, n_points * n_depths, 3
+        all_feats = torch.stack(all_feats, 1)  # B, n_cam, n_points * n_depths, C
         return all_rays, all_feats
+
+    def splat_features(self, all_rays, all_feats):
+        bev_cfg = self.config["LSS"]["bev_config"]
+        all_rays_quant, valid = project_pcl_to_pillar(all_rays, bev_cfg)
+        B, n_cam, n_points, n_feats = all_feats.shape
+
+        all_feats = all_feats.reshape(B, n_cam * n_points, n_feats)
+        all_rays_quant = all_rays_quant.reshape(B, -1, 3)
+        valid = valid.reshape(B, -1)
+
+        all_bevs = []
+        for batch_idx in range(B):
+            curr_feats = all_feats[batch_idx]
+            curr_bev_idx = all_rays_quant[batch_idx]
+            curr_valid = valid[batch_idx]
+            bev = scatter_feautres_to_bev(
+                curr_feats[curr_valid], curr_bev_idx[curr_valid], bev_cfg
+            )
+            all_bevs.append(bev)
+        all_bevs = torch.stack(all_bevs, 0)
+        return all_bevs
