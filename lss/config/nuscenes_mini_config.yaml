@@ -13,6 +13,7 @@ LSS:
     y_min: -25
     y_max: 25
     cell_size: 0.5
+  trajectory_horizon: 30
 DATA:
   dataset: NuScenesDataset
   root_dir: "data/nuscenes/v1.0-mini"
