@@ -24,7 +24,7 @@ class Trainer(TrainerBase):
     def __init__(self, config, logger):
         super().__init__(config, logger)
         self.shoot_head = ShootHead(config)
-        self.shoot_head = self.shoot_head.cuda()
+        self.shoot_head = self.shoot_head.to(self.device)
         self.load_trajectory_library()
 
     def load_trajectory_library(self):
@@ -164,7 +164,7 @@ class Trainer(TrainerBase):
             )
             all_bevs.append(bev)
         all_bevs = torch.stack(all_bevs, 0)
-        all_bevs = all_bevs.permute(0, 3, 1, 2)  # B, C, H, W
+        all_bevs = all_bevs.permute(0, 3, 1, 2).contiguous()
         return all_bevs
 
     def get_cost_per_trajectory(self, all_cost_map):

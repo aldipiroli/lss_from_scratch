@@ -45,5 +45,5 @@ def scatter_feautres_to_bev(feats, bev_idx, bev_cfg):
         reduce="sum",
         include_self=False,
     )
-    bev = bev.view(H, W, C)
+    bev = bev.reshape(H, W, C)
     return bev
