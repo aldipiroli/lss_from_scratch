@@ -37,3 +37,21 @@ class ResNet18(BaseModel):
         feats = self.model.layer4(x)  # (B, n_ch, h, w)
         dist = self.dist_conv(feats)  # (B, n_depths, h, w)
         return feats, dist
+
+
+class ShootHead(BaseModel):
+    def __init__(self, config=None):
+        super().__init__(config)
+        c = config["MODEL"]["bev_feats"]
+        self.net = nn.Sequential(
+            nn.Conv2d(c, c, 3, padding=1),
+            nn.BatchNorm2d(c),
+            nn.ReLU(),
+            nn.Conv2d(c, c, 3, padding=1),
+            nn.BatchNorm2d(c),
+            nn.ReLU(),
+            nn.Conv2d(c, 1, 1),
+        )
+
+    def forward(self, x):
+        return self.net(x)
