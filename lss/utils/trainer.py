@@ -17,8 +17,6 @@ from lss.model.model import ShootHead
 import pickle
 import numpy as np
 
-CAMERAS = CAMERAS[:1]
-
 
 class Trainer(TrainerBase):
     def __init__(self, config, logger):
