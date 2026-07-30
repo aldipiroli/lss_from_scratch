@@ -2,6 +2,7 @@ ARTIFACTS_DIR: "artifacts"
 MODEL:
   model_class: ResNet18
   pretrained: false
+  bev_feats: 512
 LSS:
   depth_config:
     d_min: 4
@@ -30,6 +31,7 @@ DATA:
         "scene-1100",
       ]
     val: ["scene-0103", "scene-0916"]
+  trajectory_library_path: "data/nuscenes/trajectories_dict.pkl"
 OPTIM:
   optimizer: "AdamW"
   lr: 0.0002

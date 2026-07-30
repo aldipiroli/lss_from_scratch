@@ -80,8 +80,40 @@ class NuScenesDataset(Dataset):
             extrinsics[cam] = torch.tensor(T, dtype=torch.float32)
         return images, intrinsics, extrinsics
 
+    def get_ego_pose(self, sample):
+        sd = self.nusc.get("sample_data", sample["data"]["CAM_FRONT"])
+        ego_pose = self.nusc.get("ego_pose", sd["ego_pose_token"])
+        return ego_pose
+
+    def global_to_ego(self, point, ego_pose):
+        translation = np.array(ego_pose["translation"])
+        rotation = Quaternion(ego_pose["rotation"])
+        point = point - translation
+        point = rotation.inverse.rotate(point)
+        return point
+
+    def get_driven_trajectory(self, sample):
+        horizon = self.cfg["LSS"].get("trajectory_horizon", 30)
+        current_pose = self.get_ego_pose(sample)
+        trajectory = []
+        current = sample
+        for _ in range(horizon):
+            pose = self.get_ego_pose(current)
+            global_xyz = np.array(pose["translation"])
+            local_xyz = self.global_to_ego(global_xyz, current_pose)
+
+            trajectory.append(local_xyz[:2])
+            if current["next"] == "":
+                break
+            current = self.nusc.get("sample", current["next"])
+        while len(trajectory) < horizon:  # pad trajectory
+            trajectory.append(trajectory[-1].copy())
+
+        return np.asarray(trajectory, dtype=np.float32)
+
     def __getitem__(self, idx):
         sample = self.samples[idx]
 
         images, intrinsics, extrinsics = self.get_camera_data(sample)
-        return images, intrinsics, extrinsics
+        trajectory = self.get_driven_trajectory(sample)
+        return images, intrinsics, extrinsics, trajectory
