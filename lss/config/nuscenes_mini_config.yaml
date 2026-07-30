@@ -32,6 +32,8 @@ DATA:
       ]
     val: ["scene-0103", "scene-0916"]
   trajectory_library_path: "data/nuscenes/trajectories_dict.pkl"
+  scale_down_img: False
+  scale_imgs_factor: 1
 OPTIM:
   optimizer: "AdamW"
   lr: 0.0002

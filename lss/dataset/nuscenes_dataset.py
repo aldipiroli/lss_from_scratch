@@ -5,6 +5,8 @@ from torchvision.io import read_image
 from nuscenes.nuscenes import NuScenes
 from pyquaternion import Quaternion
 import numpy as np
+from lss.utils.camera_utils import scale_camera_intrinsic
+import torch.nn.functional as F
 
 CAMERAS = [
     "CAM_FRONT",
@@ -78,6 +80,26 @@ class NuScenesDataset(Dataset):
             T[:3, 3] = t
             intrinsics[cam] = K
             extrinsics[cam] = torch.tensor(T, dtype=torch.float32)
+
+            if self.cfg["DATA"]["scale_down_img"]:
+                scale_factor = self.cfg["DATA"]["scale_imgs_factor"]
+                old_size = images[cam].shape
+                img = images[cam].unsqueeze(0)
+                new_size = (
+                    img.shape[-2] // scale_factor,
+                    img.shape[-1] // scale_factor,
+                )
+                img_resized = F.interpolate(
+                    img,
+                    size=new_size,
+                    mode="bilinear",
+                    align_corners=False,
+                ).squeeze(0)
+                images[cam] = img_resized
+                intrinsics[cam] = scale_camera_intrinsic(
+                    old_size, new_size, intrinsics[cam]
+                )
+
         return images, intrinsics, extrinsics
 
     def get_ego_pose(self, sample):
