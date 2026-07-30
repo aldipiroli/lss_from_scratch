@@ -13,6 +13,9 @@ from lss.utils.camera_utils import (
 )
 from lss.utils.bev_utils import project_pcl_to_pillar, scatter_feautres_to_bev
 from lss.dataset.nuscenes_dataset import CAMERAS
+from lss.model.model import ShootHead
+import pickle
+import numpy as np
 
 CAMERAS = CAMERAS[:1]
 
@@ -20,6 +23,15 @@ CAMERAS = CAMERAS[:1]
 class Trainer(TrainerBase):
     def __init__(self, config, logger):
         super().__init__(config, logger)
+        self.shoot_head = ShootHead(config)
+        self.shoot_head = self.shoot_head.cuda()
+        self.load_trajectory_library()
+
+    def load_trajectory_library(self):
+        with open(self.config["DATA"]["trajectory_library_path"], "rb") as f:
+            self.trajectory_lib = pickle.load(f)
+        self.trajectory_lib = torch.tensor(np.array(self.trajectory_lib))
+        self.logger.info("Loaded trajectory_library_path!")
 
     def train(self):
         self.logger.info("Started training..")
@@ -33,7 +45,7 @@ class Trainer(TrainerBase):
     def train_one_epoch(self):
         self.model.train()
         pbar = tqdm(enumerate(self.train_loader), total=len(self.train_loader))
-        for n_iter, (all_images, intrinsics, extrinsics) in pbar:
+        for n_iter, (all_images, intrinsics, extrinsics, gt_trajectory) in pbar:
             images = batch_data(all_images, CAMERAS)
             images = images.to(self.device)
             feats, dist = self.model(images)
@@ -41,7 +53,27 @@ class Trainer(TrainerBase):
             all_rays, all_feats = self.lyft_features(
                 images, feats, dist, intrinsics, extrinsics
             )
-            self.splat_features(all_rays, all_feats)
+            all_bevs = self.splat_features(all_rays, all_feats)
+            all_cost_map = self.shoot_head(all_bevs)
+            all_trajectory_costs = self.get_cost_per_trajectory(all_cost_map)
+            loss, loss_dict = self.loss_fn(
+                all_trajectory_costs, gt_trajectory, self.trajectory_lib
+            )
+            self.write_dict_to_tb(loss_dict, self.total_iters_train, prefix="train")
+            loss.backward()
+            self.accumulate_gradients()
+            self.total_iters_train += 1
+            pbar.set_postfix(
+                {
+                    "mode": "train",
+                    "epoch": f"{self.epoch}/{self.config['OPTIM']['num_epochs']}",
+                    "loss": loss.item(),
+                    "lr": self.optimizer.param_groups[0]["lr"],
+                }
+            )
+            self.write_float_to_tb(
+                self.optimizer.param_groups[0]["lr"], "train/lr", self.total_iters_train
+            )
 
     @torch.no_grad()
     def evaluate_model(self):
@@ -107,4 +139,21 @@ class Trainer(TrainerBase):
             )
             all_bevs.append(bev)
         all_bevs = torch.stack(all_bevs, 0)
+        all_bevs = all_bevs.permute(0, 3, 1, 2)  # B, C, H, W
         return all_bevs
+
+    def get_cost_per_trajectory(self, all_cost_map):
+        self.trajectory_lib = self.trajectory_lib
+        all_trajectory_costs = []
+        for curr_traj in self.trajectory_lib:
+            curr_traj_padded = torch.cat(
+                [curr_traj, torch.zeros(curr_traj.shape[0], 1)], dim=1
+            )
+            curr_traj_quant, valid = project_pcl_to_pillar(
+                curr_traj_padded, self.config["LSS"]["bev_config"]
+            )
+            x = curr_traj_quant[valid][:, 0].long()
+            y = curr_traj_quant[valid][:, 1].long()
+            curr_trajectory_cost = torch.sum(all_cost_map[:, 0, y, x], -1)
+            all_trajectory_costs.append(curr_trajectory_cost)
+        return torch.stack(all_trajectory_costs, dim=1)
