@@ -44,6 +44,7 @@ class Trainer(TrainerBase):
 
     def train_one_epoch(self):
         self.model.train()
+        self.shoot_head.train()
         pbar = tqdm(enumerate(self.train_loader), total=len(self.train_loader))
         for n_iter, (all_images, intrinsics, extrinsics, gt_trajectory) in pbar:
             images = batch_data(all_images, CAMERAS)
@@ -78,7 +79,31 @@ class Trainer(TrainerBase):
     @torch.no_grad()
     def evaluate_model(self):
         self.model.eval()
-        pass
+        self.shoot_head.eval()
+        pbar = tqdm(enumerate(self.train_loader), total=len(self.train_loader))
+        for n_iter, (all_images, intrinsics, extrinsics, gt_trajectory) in pbar:
+            images = batch_data(all_images, CAMERAS)
+            images = images.to(self.device)
+            feats, dist = self.model(images)
+            feats, dist = self.post_process_model_output(feats, dist)
+            all_rays, all_feats = self.lyft_features(
+                images, feats, dist, intrinsics, extrinsics
+            )
+            all_bevs = self.splat_features(all_rays, all_feats)
+            all_cost_map = self.shoot_head(all_bevs)
+            all_trajectory_costs = self.get_cost_per_trajectory(all_cost_map)
+            loss, loss_dict = self.loss_fn(
+                all_trajectory_costs, gt_trajectory, self.trajectory_lib
+            )
+            self.write_dict_to_tb(
+                loss_dict, self.total_iters_train, prefix="validation"
+            )
+            pbar.set_postfix(
+                {
+                    "mode": "validation",
+                    "loss": loss.item(),
+                }
+            )
 
     def post_process_model_output(self, feats, dist):
         feats = unbatch_data(
