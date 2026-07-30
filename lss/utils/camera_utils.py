@@ -43,7 +43,7 @@ def pixel_to_camera_rays(img, K):
 
 
 def add_depth_along_ray(r, depths):
-    r = r[:, :, None, :] * depths[None, None, :, None]
+    r = r[:, :, None, :] * depths[None, None, :, None].to(r.device)
     return r
 
 
