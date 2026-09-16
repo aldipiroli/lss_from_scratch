@@ -15,3 +15,9 @@ uv run python train.py lss/config/nuscenes_mini_config.yaml
 ```
 
 ### Qualitative Results
+
+
+https://github.com/user-attachments/assets/b771a916-da6b-40ad-aeb9-5592041f5b9c
+
+
+
